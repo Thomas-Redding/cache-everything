@@ -18,3 +18,4 @@ The `firefox-extension` directory contains a Firefox extension that intercepts e
 Important Notes:
 * For anything more complicated (e.g. depending on request headers or timing), it is recommended that you read from the resulting sql table directly. The `server.py` function is only to support the extension and basic functionality.
 * There is *no* deduping logic, so `cache.db` might grow quickly.
+* Because `filterResponseData` is supported on Firefox (but not Chrome), the Chrome extension is unfortunately needs to duplicate every request sent.
