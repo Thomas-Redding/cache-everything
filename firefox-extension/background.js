@@ -1,30 +1,30 @@
 
-let gFoo = {};
+let gLiveRequests = {};
 
 browser.webRequest.onSendHeaders.addListener(details => {
   if (details.url.startsWith('http://localhost:8080/')) return {};
-  if (gFoo[details.requestId]["url"] != details.url) {
+  if (gLiveRequests[details.requestId]["url"] != details.url) {
     throw Error();
   }
-  gFoo[details.requestId]["requestHeaders"] = details.requestHeaders;
+  gLiveRequests[details.requestId]["requestHeaders"] = details.requestHeaders;
   maybeProcess(details.requestId);
 }, { urls: ['<all_urls>'], },  ["requestHeaders"]);
 
 // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest/filterResponseData
 browser.webRequest.onBeforeRequest.addListener(details => {
   if (details.url.startsWith('http://localhost:8080/')) return {};
-  if (details.requestId in gFoo) {
+  if (details.requestId in gLiveRequests) {
     throw Error();
   }
-  gFoo[details.requestId] = {};
-  gFoo[details.requestId]['requestId'] = details.requestId;
-  gFoo[details.requestId]["url"] = details.url;
-  gFoo[details.requestId]["startTime"] = new Date().getTime();
+  gLiveRequests[details.requestId] = {};
+  gLiveRequests[details.requestId]['requestId'] = details.requestId;
+  gLiveRequests[details.requestId]["url"] = details.url;
+  gLiveRequests[details.requestId]["startTime"] = new Date().getTime();
   let filter = browser.webRequest.filterResponseData(details.requestId);
   let decoder = new TextDecoder("utf-8");
   let encoder = new TextEncoder();
   filter.ondata = (event) => {
-    gFoo[details.requestId]["data"] = event.data;
+    gLiveRequests[details.requestId]["data"] = event.data;
     maybeProcess(details.requestId);
     filter.write(event.data)
     filter.disconnect();
@@ -35,13 +35,13 @@ browser.webRequest.onBeforeRequest.addListener(details => {
 
 browser.webRequest.onResponseStarted.addListener(details => {
   if (details.url.startsWith('http://localhost:8080/')) return {};
-  gFoo[details.requestId]["statusCode"] = details.statusCode;
-  gFoo[details.requestId]["responseHeaders"] = details.responseHeaders;
+  gLiveRequests[details.requestId]["statusCode"] = details.statusCode;
+  gLiveRequests[details.requestId]["responseHeaders"] = details.responseHeaders;
   maybeProcess(details.requestId);
 }, { urls: ['<all_urls>'], },  ["responseHeaders"]);
 
 function maybeProcess(requestId) {
-  let info = gFoo[requestId];
+  let info = gLiveRequests[requestId];
   if (!("requestHeaders" in info)) return;
   if (!("responseHeaders" in info)) return;
   if (!("data" in info)) return;
@@ -54,15 +54,15 @@ function maybeProcess(requestId) {
     },
     method: 'PUT',
   });
-  delete gFoo[requestId];
+  delete gLiveRequests[requestId];
 }
 
 setInterval(_ => {
   let now = new Date().getTime();
-  for (requestId in gFoo) {
-    if (now - gFoo[requestId]["startTime"] > 60000) {
-      console.log('timeout', gFoo[requestId]);
-      delete gFoo[requestId];
+  for (requestId in gLiveRequests) {
+    if (now - gLiveRequests[requestId]["startTime"] > 60000) {
+      console.log('timeout', gLiveRequests[requestId]);
+      delete gLiveRequests[requestId];
     }
   }
 });
