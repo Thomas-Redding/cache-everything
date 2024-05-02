@@ -1,0 +1,15 @@
+{
+  "description": "An extension for web caching.",
+  "manifest_version": 2,
+  "name": "Cacher",
+  "version": "1.0",
+  "permissions": [
+    "activeTab",
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  }
+}
